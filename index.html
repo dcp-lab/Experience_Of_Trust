@@ -22,7 +22,7 @@
 
     // Record condition and survey order
     const condition = Math.random() < 0.5 ? 'DG' : 'TG';
-    const surveyOrder = jsPsych.randomization.sampleWithoutReplacement(['PANAS', 'STAIS'], 2);
+    const surveyOrder = Math.random() < 0.5 ? ['PANAS', 'STAIS'] : ['STAIS', 'PANAS'];
     const gameData = [];
 
     // Welcome and info
