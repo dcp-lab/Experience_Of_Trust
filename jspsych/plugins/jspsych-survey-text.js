@@ -1,1 +1,1 @@
-// jspsych-survey-text.js plugin logic placeholder
+// survey-text plugin

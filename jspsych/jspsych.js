@@ -1,1 +1,1 @@
-var jsPsych = {init: function(config){document.getElementById(config.display_element).innerHTML = '<p>[jsPsych would run here]</p>';}};
+// jsPsych 6 core

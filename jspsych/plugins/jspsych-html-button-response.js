@@ -1,1 +1,1 @@
-// jspsych-html-button-response.js plugin logic placeholder
+// html-button-response plugin
