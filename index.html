@@ -1,234 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>jsPsych Experiment</title>
+  <meta charset="UTF-8">
+  <title>Experience of Trust</title>
+  <link rel="stylesheet" href="jspsych/css/jspsych.css">
   <style>
-    /* Basic styling: center content, max width 800px */
-    #jspsych-target {
-      max-width: 800px;
-      margin: auto;
-    }
-    /* Optional: style coin image size */
-    .coin-img {
-      width: 30px;
-      vertical-align: middle;
-    }
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 2em; }
+    .coin-row img { height: 30px; vertical-align: middle; }
   </style>
-  <!-- Include jsPsych 6 library and plugins -->
   <script src="jspsych/jspsych.js"></script>
   <script src="jspsych/plugins/jspsych-html-button-response.js"></script>
   <script src="jspsych/plugins/jspsych-survey-likert.js"></script>
   <script src="jspsych/plugins/jspsych-survey-text.js"></script>
-  <link href="jspsych/css/jspsych.css" rel="stylesheet">
 </head>
 <body>
   <div id="jspsych-target"></div>
+
   <script>
-    window.onload = function() {
-      // Random condition assignment (DG or TG)
-      var condition = Math.random() < 0.5 ? 'DG' : 'TG';
-      // Total coins counter
-      var totalCoins = 0;
-      // Randomize order of PANAS vs STAI for pre-game
-      var preOrder = Math.random() < 0.5 ? 'PANAS-first' : 'STAIS-first';
-      var preQuestionnaires = [];
-      var postQuestionnaires = [];
+    window.onload = function () {
+      const timeline = [];
+      const condition = Math.random() < 0.5 ? 'DG' : 'TG';
+      const order = Math.random() < 0.5 ? ['PANAS', 'STAIS'] : ['STAIS', 'PANAS'];
+      let totalCoins = 0;
 
-      // 1. Welcome trial
-      var welcome_trial = {
+      // Welcome
+      timeline.push({
         type: 'html-button-response',
-        stimulus: "<h2>Welcome</h2><p>Welcome to the experiment. Click continue to begin.</p>",
-        choices: ["Continue"],
-        data: {phase: 'welcome'}
-      };
+        stimulus: "<h2>Welcome</h2><p>This study investigates trust and decision-making.</p>",
+        choices: ["Continue"]
+      });
 
-      // 2. SSVS questionnaire (2 Likert questions)
-      var ssvs_questions = [
-        {
-          prompt: "I prefer sharing rather than keeping everything for myself.",
-          labels: ["Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"],
-          required: true
-        },
-        {
-          prompt: "I like to help others even if it costs me something.",
-          labels: ["Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"],
-          required: true
-        }
-      ];
-      var ssvs_trial = {
+      // SSVS
+      timeline.push({
         type: 'survey-likert',
-        questions: ssvs_questions,
-        data: {questionnaire: 'SSVS'}
-      };
+        preamble: "<h3>Short Schwartz Value Survey</h3>",
+        questions: [
+          { prompt: "Achievement is important to me", labels: ["Not at all", "", "", "", "Very much"], required: true },
+          { prompt: "Helping others is important to me", labels: ["Not at all", "", "", "", "Very much"], required: true }
+        ],
+        data: { part: "SSVS" }
+      });
 
-      // 3. Pre-game PANAS and STAI-S (randomized order)
-      var panas_items = [
-        {prompt: "Interested", labels: ["Not at all", "A little", "Moderately", "Quite a bit", "Extremely"], required: true},
-        {prompt: "Distressed", labels: ["Not at all", "A little", "Moderately", "Quite a bit", "Extremely"], required: true},
-        {prompt: "Excited", labels: ["Not at all", "A little", "Moderately", "Quite a bit", "Extremely"], required: true},
-        {prompt: "Upset", labels: ["Not at all", "A little", "Moderately", "Quite a bit", "Extremely"], required: true}
-      ];
-      var stais_items = [
-        {prompt: "I feel calm", labels: ["Not at all", "Somewhat", "Moderately", "Very much"], required: true},
-        {prompt: "I am tense", labels: ["Not at all", "Somewhat", "Moderately", "Very much"], required: true},
-        {prompt: "I feel upset", labels: ["Not at all", "Somewhat", "Moderately", "Very much"], required: true},
-        {prompt: "I am relaxed", labels: ["Not at all", "Somewhat", "Moderately", "Very much"], required: true}
-      ];
-      var panas_pre = {
-        type: 'survey-likert',
-        questions: panas_items,
-        data: {questionnaire: 'PANAS', phase: 'pre'}
-      };
-      var stais_pre = {
-        type: 'survey-likert',
-        questions: stais_items,
-        data: {questionnaire: 'STAI', phase: 'pre'}
-      };
-      // Prepare post-game versions (same questions, phase 'post')
-      var panas_post = {
-        type: 'survey-likert',
-        questions: panas_items,
-        data: {questionnaire: 'PANAS', phase: 'post'}
-      };
-      var stais_post = {
-        type: 'survey-likert',
-        questions: stais_items,
-        data: {questionnaire: 'STAI', phase: 'post'}
-      };
-      // Order the pre and post questionnaires based on preOrder
-      if (preOrder === 'PANAS-first') {
-        preQuestionnaires.push(panas_pre, stais_pre);
-        postQuestionnaires.push(panas_post, stais_post);
-      } else {
-        preQuestionnaires.push(stais_pre, panas_pre);
-        postQuestionnaires.push(stais_post, panas_post);
-      }
-
-      // 4. (Condition chosen above in 'condition' variable)
-
-      // 5. Expectation estimation (text input survey)
-      var estimation_trial;
-      if (condition === 'DG') {
-        estimation_trial = {
-          type: 'survey-text',
-          questions: [
-            {prompt: "Estimate: How many coins do you think you will receive each round on average?", 
-             placeholder: "Enter a number", required: true}
+      // PANAS/STAIS pre
+      order.forEach(scale => {
+        timeline.push({
+          type: 'survey-likert',
+          preamble: `<h3>${scale} (Pre)</h3>`,
+          questions: scale === "PANAS" ? [
+            { prompt: "Interested", labels: ["Very slightly", "", "", "", "Extremely"], required: true },
+            { prompt: "Distressed", labels: ["Very slightly", "", "", "", "Extremely"], required: true }
+          ] : [
+            { prompt: "I feel calm", labels: ["Not at all", "", "", "", "Very much"], required: true },
+            { prompt: "I feel tense", labels: ["Not at all", "", "", "", "Very much"], required: true }
           ],
-          data: {phase: 'pre-game', task: 'estimation', condition: 'DG'}
-        };
-      } else {
-        estimation_trial = {
-          type: 'survey-text',
-          questions: [
-            {prompt: "Estimate: How many coins do you expect to receive each round on average?", placeholder: "", required: true},
-            {prompt: "Estimate: How many coins do you think you will send back each round on average?", placeholder: "", required: true}
-          ],
-          data: {phase: 'pre-game', task: 'estimation', condition: 'TG'}
-        };
-      }
+          data: { part: scale + "_Pre" }
+        });
+      });
 
-      // 6. Game introduction (condition-specific instructions)
-      var intro_text;
-      if (condition === 'DG') {
-        intro_text = "<h3>Instructions – Dictator Game</h3>";
-        intro_text += "<p>You will now play a game where another player decides how many coins to send to you each round. You simply receive these coins and keep them.</p>";
-      } else {
-        intro_text = "<h3>Instructions – Trust Game</h3>";
-        intro_text += "<p>You will now play a game where another player will send you some coins each round. After receiving them, you will decide how many coins to send back to that player.</p>";
-      }
-      intro_text += "<p>Press the button below to begin the game.</p>";
-      var intro_trial = {
+      // Estimate
+      timeline.push({
+        type: 'survey-text',
+        preamble: `<h3>Estimate</h3><p>You are assigned to the <strong>${condition}</strong> condition.</p>`,
+        questions: [
+          { prompt: "How many coins do you expect to receive on average per trial?", required: true }
+        ],
+        data: { part: "Estimate", condition: condition }
+      });
+
+      // Instructions
+      timeline.push({
         type: 'html-button-response',
-        stimulus: intro_text,
-        choices: ["Start Game"],
-        data: {phase: 'instruction', condition: condition}
-      };
+        stimulus: `<h3>Instructions – ${condition}</h3><p>You will play 10 rounds as Player B.</p>`,
+        choices: ["Start"]
+      });
 
-      // 7. Game trials (10 rounds)
-      var game_trials = [];
-      for (var i = 1; i <= 10; i++) {
-        var amount = Math.floor(Math.random() * 10) + 1;  // random 1-10 coins
+      // 10 Trials
+      for (let i = 1; i <= 10; i++) {
+        const sent = Math.random() < 0.7 ? Math.floor(8 + Math.random() * 5) : Math.floor(Math.random() * 13);
+        const tripled = sent * 3;
+        const endowment = 12;
+        const total = tripled + endowment;
+        const coins = '<img src="assets/coin.png">'.repeat(total);
+
         if (condition === 'DG') {
-          // Dictator Game trial
-          var coins_html = "<p><strong>Round " + i + ": You received " + amount + " coin(s).</strong></p>";
-          coins_html += "<div>";
-          for (var c = 0; c < amount; c++) {
-            coins_html += "<img src='coin.png' class='coin-img' alt='coin' />";
-          }
-          coins_html += "</div>";
-          coins_html += "<p>You keep all these coins.</p>";
-          var dg_trial = {
+          timeline.push({
             type: 'html-button-response',
-            stimulus: coins_html,
+            stimulus: `<h3>Round ${i}</h3><p>You received <strong>${tripled}</strong> MUs from Player A.</p>
+                       <p>Your endowment: 12</p><div class="coin-row">${coins}</div>
+                       <p>You keep everything.</p>`,
             choices: ["Next"],
-            data: {phase: 'game', condition: 'DG', round: i, amount: amount},
-            on_finish: function(data) {
-              // In DG, add all received coins to total
-              totalCoins += data.amount;
-            }
-          };
-          game_trials.push(dg_trial);
+            data: { trial: i, received: tripled, total: total, condition: 'DG' },
+            on_finish: data => { totalCoins += total; }
+          });
         } else {
-          // Trust Game trial
-          var preamble_html = "<p><strong>Round " + i + ": You received " + amount + " coin(s).</strong></p>";
-          preamble_html += "<div>";
-          for (var c = 0; c < amount; c++) {
-            preamble_html += "<img src='coin.png' class='coin-img' alt='coin' />";
-          }
-          preamble_html += "</div>";
-          preamble_html += "<p>How many coins will you send back?</p>";
-          var tg_trial = {
+          timeline.push({
             type: 'survey-text',
-            preamble: preamble_html,
-            questions: [{prompt: "Coins to return:", required: true}],
-            data: {phase: 'game', condition: 'TG', round: i, amount: amount},
-            on_finish: function(data) {
-              // Parse returned amount from response
-              var returned = 0;
-              if (data.response && data.response.Q0) {
-                returned = parseInt(data.response.Q0) || 0;
-              }
-              if (returned > data.amount) returned = data.amount; // cap at amount received
-              totalCoins += (data.amount - returned);            // add kept coins to total
-              data.returned = returned;                          // record returned in data
+            preamble: `<h3>Round ${i}</h3><p>You received <strong>${tripled}</strong> MUs from Player A.</p>
+                       <p>Your endowment: 12</p><div class="coin-row">${coins}</div>
+                       <p>How many MUs do you want to send back?</p>`,
+            questions: [{ prompt: "", name: "returned", required: true }],
+            data: { trial: i, received: tripled, total: total, condition: 'TG' },
+            on_finish: data => {
+              const returned = parseInt(data.response.returned) || 0;
+              data.returned = Math.min(returned, total);
+              totalCoins += total - data.returned;
             }
-          };
-          game_trials.push(tg_trial);
+          });
         }
       }
 
-      // 8. Post-game PANAS and STAI-S (same order as pre)
-      // (Already prepared in postQuestionnaires array)
+      // PANAS/STAIS post (same order)
+      order.forEach(scale => {
+        timeline.push({
+          type: 'survey-likert',
+          preamble: `<h3>${scale} (Post)</h3>`,
+          questions: scale === "PANAS" ? [
+            { prompt: "Interested", labels: ["Very slightly", "", "", "", "Extremely"], required: true },
+            { prompt: "Distressed", labels: ["Very slightly", "", "", "", "Extremely"], required: true }
+          ] : [
+            { prompt: "I feel calm", labels: ["Not at all", "", "", "", "Very much"], required: true },
+            { prompt: "I feel tense", labels: ["Not at all", "", "", "", "Very much"], required: true }
+          ],
+          data: { part: scale + "_Post" }
+        });
+      });
 
-      // 9. Debrief + 10. Data download
-      var debrief_html = "<h3>Debrief</h3>";
-      debrief_html += "<p>The game is now over. You earned a total of <strong>" + totalCoins + "</strong> coins.</p>";
-      debrief_html += "<p>Thank you for participating!</p>";
-      var debrief_trial = {
+      // Debrief
+      timeline.push({
         type: 'html-button-response',
-        stimulus: debrief_html,
-        choices: ["Download Data"],
-        on_finish: function() {
-          // Trigger download of data as JSON
-          jsPsych.data.get().localSave('json', 'experiment_data.json');
+        stimulus: `<h3>Debrief</h3><p>Thank you for participating. You kept <strong>${totalCoins}</strong> coins.</p>`,
+        choices: ['Download Data'],
+        on_finish: () => {
+          jsPsych.data.get().localSave('json', 'trust_experiment_data.json');
         }
-      };
+      });
 
-      // Assemble timeline
-      var timeline = [];
-      timeline.push(welcome_trial);
-      timeline.push(ssvs_trial);
-      timeline = timeline.concat(preQuestionnaires);
-      // (condition selection was done in code)
-      timeline.push(estimation_trial);
-      timeline.push(intro_trial);
-      timeline = timeline.concat(game_trials);
-      timeline = timeline.concat(postQuestionnaires);
-      timeline.push(debrief_trial);
-
-      // Start the experiment
       jsPsych.init({
         timeline: timeline,
         display_element: 'jspsych-target'
