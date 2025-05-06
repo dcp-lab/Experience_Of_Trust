@@ -1,145 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Experience of Trust</title>
-  <link rel="stylesheet" href="jspsych/css/jspsych.css">
+  <link rel="stylesheet" href="jspsych/css/jspsych.css" />
   <style>
     body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 2em; }
     .coin-row img { height: 30px; vertical-align: middle; }
   </style>
-  <script src="jspsych/jspsych.js" defer></script>
-  <script src="jspsych/plugins/jspsych-html-button-response.js" defer></script>
-  <script src="jspsych/plugins/jspsych-survey-likert.js" defer></script>
-  <script src="jspsych/plugins/jspsych-survey-text.js" defer></script>
 </head>
 <body>
   <div id="jspsych-target"></div>
 
+  <!-- Load jsPsych core and plugins BEFORE the main script -->
+  <script src="jspsych/jspsych.js"></script>
+  <script src="jspsych/plugins/jspsych-html-button-response.js"></script>
+  <script src="jspsych/plugins/jspsych-survey-likert.js"></script>
+  <script src="jspsych/plugins/jspsych-survey-text.js"></script>
+
+  <!-- MAIN SCRIPT -->
   <script>
-    window.onload = function () {
-      const timeline = [];
-      const condition = Math.random() < 0.5 ? 'DG' : 'TG';
-      const order = Math.random() < 0.5 ? ['PANAS', 'STAIS'] : ['STAIS', 'PANAS'];
-      let totalCoins = 0;
+    const timeline = [];
+    const condition = Math.random() < 0.5 ? 'DG' : 'TG';
+    const order = Math.random() < 0.5 ? ['PANAS', 'STAIS'] : ['STAIS', 'PANAS'];
+    let totalCoins = 0;
 
-      // Welcome
-      timeline.push({
-        type: 'html-button-response',
-        stimulus: "<h2>Welcome</h2><p>This study investigates trust and decision-making.</p>",
-        choices: ["Continue"]
-      });
+    // Welcome
+    timeline.push({
+      type: 'html-button-response',
+      stimulus: "<h2>Welcome</h2><p>This study investigates trust and decision-making.</p>",
+      choices: ["Continue"]
+    });
 
-      // SSVS
+    // SSVS
+    timeline.push({
+      type: 'survey-likert',
+      preamble: "<h3>Short Schwartz Value Survey</h3>",
+      questions: [
+        { prompt: "Achievement is important to me", labels: ["Not at all", "", "", "", "Very much"], required: true },
+        { prompt: "Helping others is important to me", labels: ["Not at all", "", "", "", "Very much"], required: true }
+      ],
+      data: { part: "SSVS" }
+    });
+
+    // PANAS/STAIS pre
+    order.forEach(scale => {
       timeline.push({
         type: 'survey-likert',
-        preamble: "<h3>Short Schwartz Value Survey</h3>",
-        questions: [
-          { prompt: "Achievement is important to me", labels: ["Not at all", "", "", "", "Very much"], required: true },
-          { prompt: "Helping others is important to me", labels: ["Not at all", "", "", "", "Very much"], required: true }
+        preamble: `<h3>${scale} (Pre)</h3>`,
+        questions: scale === "PANAS" ? [
+          { prompt: "Interested", labels: ["Very slightly", "", "", "", "Extremely"], required: true },
+          { prompt: "Distressed", labels: ["Very slightly", "", "", "", "Extremely"], required: true }
+        ] : [
+          { prompt: "I feel calm", labels: ["Not at all", "", "", "", "Very much"], required: true },
+          { prompt: "I feel tense", labels: ["Not at all", "", "", "", "Very much"], required: true }
         ],
-        data: { part: "SSVS" }
+        data: { part: scale + "_Pre" }
       });
+    });
 
-      // PANAS/STAIS pre
-      order.forEach(scale => {
+    // Estimation
+    timeline.push({
+      type: 'survey-text',
+      preamble: `<h3>Estimate</h3><p>You are assigned to the <strong>${condition}</strong> condition.</p>`,
+      questions: [
+        { prompt: "How many coins do you expect to receive on average per trial?", required: true }
+      ],
+      data: { part: "Estimate", condition: condition }
+    });
+
+    // Instructions
+    timeline.push({
+      type: 'html-button-response',
+      stimulus: `<h3>Instructions – ${condition}</h3><p>You will play 10 rounds as Player B.</p>`,
+      choices: ["Start"]
+    });
+
+    // 10 trials
+    for (let i = 1; i <= 10; i++) {
+      const sent = Math.random() < 0.7 ? Math.floor(8 + Math.random() * 5) : Math.floor(Math.random() * 13);
+      const tripled = sent * 3;
+      const endowment = 12;
+      const total = tripled + endowment;
+      const coinsHTML = '<img src="assets/coin.png">'.repeat(total);
+
+      if (condition === 'DG') {
         timeline.push({
-          type: 'survey-likert',
-          preamble: `<h3>${scale} (Pre)</h3>`,
-          questions: scale === "PANAS" ? [
-            { prompt: "Interested", labels: ["Very slightly", "", "", "", "Extremely"], required: true },
-            { prompt: "Distressed", labels: ["Very slightly", "", "", "", "Extremely"], required: true }
-          ] : [
-            { prompt: "I feel calm", labels: ["Not at all", "", "", "", "Very much"], required: true },
-            { prompt: "I feel tense", labels: ["Not at all", "", "", "", "Very much"], required: true }
-          ],
-          data: { part: scale + "_Pre" }
+          type: 'html-button-response',
+          stimulus: `<h3>Round ${i}</h3><p>You received <strong>${tripled}</strong> MUs from Player A.</p>
+                     <p>Your endowment: 12</p><div class="coin-row">${coinsHTML}</div>
+                     <p>You keep everything.</p>`,
+          choices: ["Next"],
+          data: { trial: i, received: tripled, total: total, condition: 'DG' },
+          on_finish: data => { totalCoins += total; }
         });
-      });
-
-      // Estimate
-      timeline.push({
-        type: 'survey-text',
-        preamble: `<h3>Estimate</h3><p>You are assigned to the <strong>${condition}</strong> condition.</p>`,
-        questions: [
-          { prompt: "How many coins do you expect to receive on average per trial?", required: true }
-        ],
-        data: { part: "Estimate", condition: condition }
-      });
-
-      // Instructions
-      timeline.push({
-        type: 'html-button-response',
-        stimulus: `<h3>Instructions – ${condition}</h3><p>You will play 10 rounds as Player B.</p>`,
-        choices: ["Start"]
-      });
-
-      // 10 Trials
-      for (let i = 1; i <= 10; i++) {
-        const sent = Math.random() < 0.7 ? Math.floor(8 + Math.random() * 5) : Math.floor(Math.random() * 13);
-        const tripled = sent * 3;
-        const endowment = 12;
-        const total = tripled + endowment;
-        const coins = '<img src="assets/coin.png">'.repeat(total);
-
-        if (condition === 'DG') {
-          timeline.push({
-            type: 'html-button-response',
-            stimulus: `<h3>Round ${i}</h3><p>You received <strong>${tripled}</strong> MUs from Player A.</p>
-                       <p>Your endowment: 12</p><div class="coin-row">${coins}</div>
-                       <p>You keep everything.</p>`,
-            choices: ["Next"],
-            data: { trial: i, received: tripled, total: total, condition: 'DG' },
-            on_finish: data => { totalCoins += total; }
-          });
-        } else {
-          timeline.push({
-            type: 'survey-text',
-            preamble: `<h3>Round ${i}</h3><p>You received <strong>${tripled}</strong> MUs from Player A.</p>
-                       <p>Your endowment: 12</p><div class="coin-row">${coins}</div>
-                       <p>How many MUs do you want to send back?</p>`,
-            questions: [{ prompt: "", name: "returned", required: true }],
-            data: { trial: i, received: tripled, total: total, condition: 'TG' },
-            on_finish: data => {
-              const returned = parseInt(data.response.returned) || 0;
-              data.returned = Math.min(returned, total);
-              totalCoins += total - data.returned;
-            }
-          });
-        }
+      } else {
+        timeline.push({
+          type: 'survey-text',
+          preamble: `<h3>Round ${i}</h3><p>You received <strong>${tripled}</strong> MUs from Player A.</p>
+                     <p>Your endowment: 12</p><div class="coin-row">${coinsHTML}</div>
+                     <p>How many MUs do you want to send back?</p>`,
+          questions: [{ prompt: "", name: "returned", required: true }],
+          data: { trial: i, received: tripled, total: total, condition: 'TG' },
+          on_finish: data => {
+            const returned = parseInt(data.response.returned) || 0;
+            data.returned = Math.min(returned, total);
+            totalCoins += total - data.returned;
+          }
+        });
       }
+    }
 
-      // PANAS/STAIS post (same order)
-      order.forEach(scale => {
-        timeline.push({
-          type: 'survey-likert',
-          preamble: `<h3>${scale} (Post)</h3>`,
-          questions: scale === "PANAS" ? [
-            { prompt: "Interested", labels: ["Very slightly", "", "", "", "Extremely"], required: true },
-            { prompt: "Distressed", labels: ["Very slightly", "", "", "", "Extremely"], required: true }
-          ] : [
-            { prompt: "I feel calm", labels: ["Not at all", "", "", "", "Very much"], required: true },
-            { prompt: "I feel tense", labels: ["Not at all", "", "", "", "Very much"], required: true }
-          ],
-          data: { part: scale + "_Post" }
-        });
-      });
-
-      // Debrief
+    // PANAS/STAIS post
+    order.forEach(scale => {
       timeline.push({
-        type: 'html-button-response',
-        stimulus: `<h3>Debrief</h3><p>Thank you for participating. You kept <strong>${totalCoins}</strong> coins.</p>`,
-        choices: ['Download Data'],
-        on_finish: () => {
-          jsPsych.data.get().localSave('json', 'trust_experiment_data.json');
-        }
+        type: 'survey-likert',
+        preamble: `<h3>${scale} (Post)</h3>`,
+        questions: scale === "PANAS" ? [
+          { prompt: "Interested", labels: ["Very slightly", "", "", "", "Extremely"], required: true },
+          { prompt: "Distressed", labels: ["Very slightly", "", "", "", "Extremely"], required: true }
+        ] : [
+          { prompt: "I feel calm", labels: ["Not at all", "", "", "", "Very much"], required: true },
+          { prompt: "I feel tense", labels: ["Not at all", "", "", "", "Very much"], required: true }
+        ],
+        data: { part: scale + "_Post" }
       });
+    });
 
-      jsPsych.init({
-        timeline: timeline,
-        display_element: 'jspsych-target'
-      });
-    };
+    // Debrief
+    timeline.push({
+      type: 'html-button-response',
+      stimulus: `<h3>Debrief</h3><p>Thank you for participating. You kept <strong>${totalCoins}</strong> coins.</p>`,
+      choices: ['Download Data'],
+      on_finish: () => {
+        jsPsych.data.get().localSave('json', 'trust_experiment_data.json');
+      }
+    });
+
+    // Launch
+    jsPsych.init({
+      timeline: timeline,
+      display_element: 'jspsych-target'
+    });
   </script>
 </body>
 </html>
