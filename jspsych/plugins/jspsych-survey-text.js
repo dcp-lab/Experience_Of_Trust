@@ -1,0 +1,1 @@
+// jspsych-survey-text.js plugin logic placeholder

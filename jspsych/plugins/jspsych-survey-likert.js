@@ -1,0 +1,1 @@
+// jspsych-survey-likert.js plugin logic placeholder

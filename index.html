@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Experience of Trust</title>
+  <script src="jspsych/jspsych.js"></script>
+  <script src="jspsych/plugins/jspsych-html-button-response.js"></script>
+  <script src="jspsych/plugins/jspsych-survey-likert.js"></script>
+  <script src="jspsych/plugins/jspsych-survey-text.js"></script>
+  <link href="jspsych/css/jspsych.css" rel="stylesheet">
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 2em; }
+    .coin-row img { height: 30px; }
+  </style>
+</head>
+<body>
+  <div id="jspsych-target"></div>
+
+  <script>
+    const timeline = [];
+
+    // Record condition and survey order
+    const condition = Math.random() < 0.5 ? 'DG' : 'TG';
+    const surveyOrder = jsPsych.randomization.sampleWithoutReplacement(['PANAS', 'STAIS'], 2);
+    const gameData = [];
+
+    // Welcome and info
+    timeline.push({
+      type: 'html-button-response',
+      stimulus: '<h2>Welcome</h2><p>This study investigates trust and decision-making.</p>',
+      choices: ['Continue']
+    });
+
+    // SSVS
+    timeline.push({
+      type: 'survey-likert',
+      preamble: '<h3>Short Schwartz Value Survey (SSVS)</h3>',
+      questions: [
+        {prompt: "Achievement is important to me", labels: ["Not at all", "", "", "", "Very much"], required: true},
+        {prompt: "I value helping others", labels: ["Not at all", "", "", "", "Very much"], required: true}
+      ],
+      data: { part: "SSVS" }
+    });
+
+    // PANAS / STAIS (pre)
+    surveyOrder.forEach(name => {
+      timeline.push({
+        type: 'survey-likert',
+        preamble: '<h3>' + name + ' (Pre)</h3>',
+        questions: [
+          {prompt: name === 'PANAS' ? "Interested" : "I feel calm", labels: ["Very slightly", "", "", "", "Extremely"], required: true},
+          {prompt: name === 'PANAS' ? "Distressed" : "I feel tense", labels: ["Very slightly", "", "", "", "Extremely"], required: true}
+        ],
+        data: { part: name + "_Pre" }
+      });
+    });
+
+    // Task explanation and estimation
+    timeline.push({
+      type: 'survey-text',
+      preamble: "<h3>Estimation</h3><p>You are assigned to the <strong>" + condition + "</strong> condition. On average, how many MUs do you expect to receive or return per trial?</p>",
+      questions: [{prompt: "Your estimate:", required: true}],
+      data: { part: "Estimate", condition: condition }
+    });
+
+    // Game instructions
+    timeline.push({
+      type: 'html-button-response',
+      stimulus: "<h3>Game Instructions</h3><p>You are playing the <strong>" + condition + "</strong> game. There will be 10 rounds. Click to begin.</p>",
+      choices: ["Start"]
+    });
+
+    // Game rounds
+    for (let i = 1; i <= 10; i++) {
+      let sent = Math.random() < 0.7 ? Math.floor(8 + Math.random() * 5) : Math.floor(Math.random() * 13);
+      let tripled = sent * 3;
+      let endowment = 12;
+      let total = tripled + endowment;
+
+      let trial = {
+        type: condition === 'DG' ? 'html-button-response' : 'survey-text',
+        stimulus: '<h3>Round ' + i + '</h3><p>You received <strong>' + tripled + '</strong> MUs from Player A.</p>' +
+                  '<p>Your endowment: 12 MUs</p>' +
+                  '<div class="coin-row">' + '<img src="assets/coin.png">'.repeat(total) + '</div>' +
+                  (condition === 'TG' ? '<p>How many MUs do you return to Player A?</p>' : ''),
+        choices: condition === 'DG' ? ['Next'] : undefined,
+        questions: condition === 'TG' ? [{prompt: "", name: "returned", required: true}] : undefined,
+        data: { trial: i, received: tripled, total: total, condition: condition }
+      };
+
+      timeline.push(trial);
+    }
+
+    // PANAS / STAIS (post)
+    surveyOrder.forEach(name => {
+      timeline.push({
+        type: 'survey-likert',
+        preamble: '<h3>' + name + ' (Post)</h3>',
+        questions: [
+          {prompt: name === 'PANAS' ? "Interested" : "I feel calm", labels: ["Very slightly", "", "", "", "Extremely"], required: true},
+          {prompt: name === 'PANAS' ? "Distressed" : "I feel tense", labels: ["Very slightly", "", "", "", "Extremely"], required: true}
+        ],
+        data: { part: name + "_Post" }
+      });
+    });
+
+    // Debrief
+    timeline.push({
+      type: 'html-button-response',
+      stimulus: '<h3>Debrief</h3><p>Thank you for participating. You may now download your data.</p>',
+      choices: ['Download Data'],
+      on_finish: function() {
+        const data = jsPsych.data.get().json();
+        const blob = new Blob([data], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "trust_experiment_data.json";
+        a.click();
+      }
+    });
+
+    // Start experiment
+    window.onload = function() {
+      jsPsych.init({
+        timeline: timeline,
+        display_element: 'jspsych-target'
+      });
+    };
+  </script>
+</body>
+</html>
