@@ -12,13 +12,13 @@
 <body>
   <div id="jspsych-target"></div>
 
-  <!-- Load jsPsych core and plugins BEFORE the main script -->
+  <!-- Scripts jsPsych chargés AVANT le script principal -->
   <script src="jspsych/jspsych.js"></script>
   <script src="jspsych/plugins/jspsych-html-button-response.js"></script>
   <script src="jspsych/plugins/jspsych-survey-likert.js"></script>
   <script src="jspsych/plugins/jspsych-survey-text.js"></script>
 
-  <!-- MAIN SCRIPT -->
+  <!-- Script principal -->
   <script>
     const timeline = [];
     const condition = Math.random() < 0.5 ? 'DG' : 'TG';
@@ -43,7 +43,7 @@
       data: { part: "SSVS" }
     });
 
-    // PANAS/STAIS pre
+    // PANAS / STAIS (pre)
     order.forEach(scale => {
       timeline.push({
         type: 'survey-likert',
@@ -59,13 +59,11 @@
       });
     });
 
-    // Estimation
+    // Estimate
     timeline.push({
       type: 'survey-text',
       preamble: `<h3>Estimate</h3><p>You are assigned to the <strong>${condition}</strong> condition.</p>`,
-      questions: [
-        { prompt: "How many coins do you expect to receive on average per trial?", required: true }
-      ],
+      questions: [{ prompt: "How many coins do you expect to receive on average per trial?", required: true }],
       data: { part: "Estimate", condition: condition }
     });
 
@@ -76,7 +74,7 @@
       choices: ["Start"]
     });
 
-    // 10 trials
+    // Game Trials
     for (let i = 1; i <= 10; i++) {
       const sent = Math.random() < 0.7 ? Math.floor(8 + Math.random() * 5) : Math.floor(Math.random() * 13);
       const tripled = sent * 3;
@@ -111,7 +109,7 @@
       }
     }
 
-    // PANAS/STAIS post
+    // PANAS / STAIS (post)
     order.forEach(scale => {
       timeline.push({
         type: 'survey-likert',
@@ -137,7 +135,7 @@
       }
     });
 
-    // Launch
+    // Launch experiment
     jsPsych.init({
       timeline: timeline,
       display_element: 'jspsych-target'
