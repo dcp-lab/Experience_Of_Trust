@@ -9,19 +9,230 @@
       max-width: 800px;
       margin: auto;
     }
-    /* Optional: style coin images */
+    /* Optional: style coin image size */
     .coin-img {
       width: 30px;
       vertical-align: middle;
     }
   </style>
-  <!-- Load jsPsych core library (v6.x) -->
+  <!-- Include jsPsych 6 library and plugins -->
   <script src="jspsych.js"></script>
-  <!-- Load required jsPsych plugins -->
   <script src="jspsych-html-button-response.js"></script>
   <script src="jspsych-survey-likert.js"></script>
   <script src="jspsych-survey-text.js"></script>
 </head>
 <body>
-  <!-- Container where jsPsych will render the experiment -->
   <div id="jspsych-target"></div>
+  <script>
+    window.onload = function() {
+      // Random condition assignment (DG or TG)
+      var condition = Math.random() < 0.5 ? 'DG' : 'TG';
+      // Total coins counter
+      var totalCoins = 0;
+      // Randomize order of PANAS vs STAI for pre-game
+      var preOrder = Math.random() < 0.5 ? 'PANAS-first' : 'STAIS-first';
+      var preQuestionnaires = [];
+      var postQuestionnaires = [];
+
+      // 1. Welcome trial
+      var welcome_trial = {
+        type: 'html-button-response',
+        stimulus: "<h2>Welcome</h2><p>Welcome to the experiment. Click continue to begin.</p>",
+        choices: ["Continue"],
+        data: {phase: 'welcome'}
+      };
+
+      // 2. SSVS questionnaire (2 Likert questions)
+      var ssvs_questions = [
+        {
+          prompt: "I prefer sharing rather than keeping everything for myself.",
+          labels: ["Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"],
+          required: true
+        },
+        {
+          prompt: "I like to help others even if it costs me something.",
+          labels: ["Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"],
+          required: true
+        }
+      ];
+      var ssvs_trial = {
+        type: 'survey-likert',
+        questions: ssvs_questions,
+        data: {questionnaire: 'SSVS'}
+      };
+
+      // 3. Pre-game PANAS and STAI-S (randomized order)
+      var panas_items = [
+        {prompt: "Interested", labels: ["Not at all", "A little", "Moderately", "Quite a bit", "Extremely"], required: true},
+        {prompt: "Distressed", labels: ["Not at all", "A little", "Moderately", "Quite a bit", "Extremely"], required: true},
+        {prompt: "Excited", labels: ["Not at all", "A little", "Moderately", "Quite a bit", "Extremely"], required: true},
+        {prompt: "Upset", labels: ["Not at all", "A little", "Moderately", "Quite a bit", "Extremely"], required: true}
+      ];
+      var stais_items = [
+        {prompt: "I feel calm", labels: ["Not at all", "Somewhat", "Moderately", "Very much"], required: true},
+        {prompt: "I am tense", labels: ["Not at all", "Somewhat", "Moderately", "Very much"], required: true},
+        {prompt: "I feel upset", labels: ["Not at all", "Somewhat", "Moderately", "Very much"], required: true},
+        {prompt: "I am relaxed", labels: ["Not at all", "Somewhat", "Moderately", "Very much"], required: true}
+      ];
+      var panas_pre = {
+        type: 'survey-likert',
+        questions: panas_items,
+        data: {questionnaire: 'PANAS', phase: 'pre'}
+      };
+      var stais_pre = {
+        type: 'survey-likert',
+        questions: stais_items,
+        data: {questionnaire: 'STAI', phase: 'pre'}
+      };
+      // Prepare post-game versions (same questions, phase 'post')
+      var panas_post = {
+        type: 'survey-likert',
+        questions: panas_items,
+        data: {questionnaire: 'PANAS', phase: 'post'}
+      };
+      var stais_post = {
+        type: 'survey-likert',
+        questions: stais_items,
+        data: {questionnaire: 'STAI', phase: 'post'}
+      };
+      // Order the pre and post questionnaires based on preOrder
+      if (preOrder === 'PANAS-first') {
+        preQuestionnaires.push(panas_pre, stais_pre);
+        postQuestionnaires.push(panas_post, stais_post);
+      } else {
+        preQuestionnaires.push(stais_pre, panas_pre);
+        postQuestionnaires.push(stais_post, panas_post);
+      }
+
+      // 4. (Condition chosen above in 'condition' variable)
+
+      // 5. Expectation estimation (text input survey)
+      var estimation_trial;
+      if (condition === 'DG') {
+        estimation_trial = {
+          type: 'survey-text',
+          questions: [
+            {prompt: "Estimate: How many coins do you think you will receive each round on average?", 
+             placeholder: "Enter a number", required: true}
+          ],
+          data: {phase: 'pre-game', task: 'estimation', condition: 'DG'}
+        };
+      } else {
+        estimation_trial = {
+          type: 'survey-text',
+          questions: [
+            {prompt: "Estimate: How many coins do you expect to receive each round on average?", placeholder: "", required: true},
+            {prompt: "Estimate: How many coins do you think you will send back each round on average?", placeholder: "", required: true}
+          ],
+          data: {phase: 'pre-game', task: 'estimation', condition: 'TG'}
+        };
+      }
+
+      // 6. Game introduction (condition-specific instructions)
+      var intro_text;
+      if (condition === 'DG') {
+        intro_text = "<h3>Instructions – Dictator Game</h3>";
+        intro_text += "<p>You will now play a game where another player decides how many coins to send to you each round. You simply receive these coins and keep them.</p>";
+      } else {
+        intro_text = "<h3>Instructions – Trust Game</h3>";
+        intro_text += "<p>You will now play a game where another player will send you some coins each round. After receiving them, you will decide how many coins to send back to that player.</p>";
+      }
+      intro_text += "<p>Press the button below to begin the game.</p>";
+      var intro_trial = {
+        type: 'html-button-response',
+        stimulus: intro_text,
+        choices: ["Start Game"],
+        data: {phase: 'instruction', condition: condition}
+      };
+
+      // 7. Game trials (10 rounds)
+      var game_trials = [];
+      for (var i = 1; i <= 10; i++) {
+        var amount = Math.floor(Math.random() * 10) + 1;  // random 1-10 coins
+        if (condition === 'DG') {
+          // Dictator Game trial
+          var coins_html = "<p><strong>Round " + i + ": You received " + amount + " coin(s).</strong></p>";
+          coins_html += "<div>";
+          for (var c = 0; c < amount; c++) {
+            coins_html += "<img src='coin.png' class='coin-img' alt='coin' />";
+          }
+          coins_html += "</div>";
+          coins_html += "<p>You keep all these coins.</p>";
+          var dg_trial = {
+            type: 'html-button-response',
+            stimulus: coins_html,
+            choices: ["Next"],
+            data: {phase: 'game', condition: 'DG', round: i, amount: amount},
+            on_finish: function(data) {
+              // In DG, add all received coins to total
+              totalCoins += data.amount;
+            }
+          };
+          game_trials.push(dg_trial);
+        } else {
+          // Trust Game trial
+          var preamble_html = "<p><strong>Round " + i + ": You received " + amount + " coin(s).</strong></p>";
+          preamble_html += "<div>";
+          for (var c = 0; c < amount; c++) {
+            preamble_html += "<img src='coin.png' class='coin-img' alt='coin' />";
+          }
+          preamble_html += "</div>";
+          preamble_html += "<p>How many coins will you send back?</p>";
+          var tg_trial = {
+            type: 'survey-text',
+            preamble: preamble_html,
+            questions: [{prompt: "Coins to return:", required: true}],
+            data: {phase: 'game', condition: 'TG', round: i, amount: amount},
+            on_finish: function(data) {
+              // Parse returned amount from response
+              var returned = 0;
+              if (data.response && data.response.Q0) {
+                returned = parseInt(data.response.Q0) || 0;
+              }
+              if (returned > data.amount) returned = data.amount; // cap at amount received
+              totalCoins += (data.amount - returned);            // add kept coins to total
+              data.returned = returned;                          // record returned in data
+            }
+          };
+          game_trials.push(tg_trial);
+        }
+      }
+
+      // 8. Post-game PANAS and STAI-S (same order as pre)
+      // (Already prepared in postQuestionnaires array)
+
+      // 9. Debrief + 10. Data download
+      var debrief_html = "<h3>Debrief</h3>";
+      debrief_html += "<p>The game is now over. You earned a total of <strong>" + totalCoins + "</strong> coins.</p>";
+      debrief_html += "<p>Thank you for participating!</p>";
+      var debrief_trial = {
+        type: 'html-button-response',
+        stimulus: debrief_html,
+        choices: ["Download Data"],
+        on_finish: function() {
+          // Trigger download of data as JSON
+          jsPsych.data.get().localSave('json', 'experiment_data.json');
+        }
+      };
+
+      // Assemble timeline
+      var timeline = [];
+      timeline.push(welcome_trial);
+      timeline.push(ssvs_trial);
+      timeline = timeline.concat(preQuestionnaires);
+      // (condition selection was done in code)
+      timeline.push(estimation_trial);
+      timeline.push(intro_trial);
+      timeline = timeline.concat(game_trials);
+      timeline = timeline.concat(postQuestionnaires);
+      timeline.push(debrief_trial);
+
+      // Start the experiment
+      jsPsych.init({
+        timeline: timeline,
+        display_element: 'jspsych-target'
+      });
+    };
+  </script>
+</body>
+</html>
